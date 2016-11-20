@@ -1,6 +1,6 @@
 ---
-title: "737 Project - Airline Delay"
-author: "prasad revalkar"
+title: "737 Project - Predictive Analysis of U.S. Airline Flight Delay"
+author: "Karan Kashyap"
 date: "May 17, 2016"
 output: html_document
 ---

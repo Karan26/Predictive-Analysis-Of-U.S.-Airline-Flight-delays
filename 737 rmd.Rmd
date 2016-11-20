@@ -1,0 +1,249 @@
+---
+title: "737 Project - Airline Delay"
+author: "prasad revalkar"
+date: "May 17, 2016"
+output: html_document
+---
+
+
+```{r cars}
+
+training_data <- read.csv("Final Dataset.csv",header=T,sep=",")
+index = sample(2, nrow(training_data), replace=TRUE, prob=c(0.6, 0.4))
+trainsubsetData = training_data[index==1, ]
+testsubsetData = training_data[index==2, ]
+
+#Logistic Regression
+model1=glm(ARR_DEL15~.,family=binomial,data=trainsubsetData)
+model2=glm(ARR_DEL15~DAY_OF_WEEK+ORIGIN+DEST+ARR_TIME+ARR_DELAY,family=binomial,data=trainsubsetData)
+model3=glm(DEP_DEL15~.,family=binomial,data=trainsubsetData)
+model4=glm(Carrier_Delay_Status~.,family=binomial,data=trainsubsetData)
+
+summary(model2)
+summary(model1)
+summary(model3)
+summary(model4)#final
+
+#To determine accuracy of the model
+fitted.results_glm_1 <- predict(model1, testsubsetData, type = 'response')
+fitted.results_glm_1 <- ifelse(fitted.results_glm_1 > 0.5,1,0)
+misClassificError_glm_1 <- mean(fitted.results_glm_1 != testsubsetData$ARR_DEL15)
+misClassificError_glm_1
+print(paste('Accuracy (balance)',1 - misClassificError_glm_1))
+
+
+#To determine accuracy of the model2
+fitted.results_glm_1 <- predict(model2, testsubsetData, type = 'response')
+fitted.results_glm_1 <- ifelse(fitted.results_glm_1 > 0.5,1,0)
+misClassificError_glm_1 <- mean(fitted.results_glm_1 != testsubsetData$ARR_DEL15)
+misClassificError_glm_1
+print(paste('Accuracy (balance)',1 - misClassificError_glm_1))
+
+#To determine accuracy of the model3
+fitted.results_glm_1 <- predict(model3, testsubsetData, type = 'response')
+fitted.results_glm_1 <- ifelse(fitted.results_glm_1 > 0.5,1,0)
+misClassificError_glm_1 <- mean(fitted.results_glm_1 != testsubsetData$ARR_DEL15)
+misClassificError_glm_1
+print(paste('Accuracy (balance)',1 - misClassificError_glm_1))
+
+#To determine accuracy of the model4***FINAL***
+fitted.results_glm_1 <- predict(model4, testsubsetData, type = 'response')
+fitted.results_glm_1 <- ifelse(fitted.results_glm_1 > 0.5,1,0)
+misClassificError_glm_1 <- mean(fitted.results_glm_1 != testsubsetData$ARR_DEL15)
+misClassificError_glm_1
+print(paste('Accuracy (balance)',1 - misClassificError_glm_1))
+
+
+n2=length(testsubsetData$ARR_DEL15)
+ttt=table(fitted.results_glm_1,testsubsetData$ARR_DEL15)
+#Calculate misclassification error rate
+errorRate=(ttt[1,2]+ttt[2,1])/n2
+errorRate
+
+
+#NAIVE BAYES#
+
+rm(list = ls())
+
+library(car) ## needed to recode variables
+library(randomForest)
+
+FlightDelays3 <- read.csv("Finald.csv")
+
+nbdel=data.frame(FlightDelays3)
+nbdel$schedf=factor(floor(nbdel$ARR_TIME/100))
+nbdel$Carrier_Delay_Status=recode(nbdel$Carrier_Delay_Status,"'delayed'=1;else=0")
+response=as.numeric(levels(nbdel$Carrier_Delay_Status)[nbdel$Carrier_Delay_Status])
+
+#Training and testing sets 
+
+## determining test and evaluation data sets
+n=length(nbdel$DAY_OF_WEEK) #Number of observation in the source data
+n
+n1=floor(n*(0.8))
+n1
+n2=n-n1
+n2
+
+set.seed(1)
+nbtrain=sample(1:n,n1)
+
+## determining marginal probabilities
+tttt=cbind(nbdel$schedf[nbtrain],
+           nbdel$UNIQUE_CARRIER[nbtrain],
+           nbdel$DEST[nbtrain],
+           nbdel$ORIGIN[nbtrain],
+           nbdel$DAY_OF_WEEK[nbtrain],
+           response[nbtrain])
+
+tttrain0=tttt[tttt[,6]<0.5,] #Select observations with response (delay) < 0.5
+tttrain1=tttt[tttt[,6]>0.5,] #Select observations with response (delay) > 0.5
+
+## prior probabilities
+tdel=table(response[nbtrain])
+tdel=tdel/sum(tdel)
+tdel
+
+## scheduled time
+ts0=table(tttrain0[,1])
+ts0=ts0/sum(ts0)
+ts0
+ts1=table(tttrain1[,1])
+ts1=ts1/sum(ts1)
+ts1
+
+## scheduled carrier
+tc0=table(tttrain0[,2])
+
+tc0=tc0/sum(tc0)
+tc0
+tc1=table(tttrain1[,2])
+tc1=tc1/sum(tc1)
+tc1
+
+## scheduled destination
+td0=table(tttrain0[,3])
+td0=td0/sum(td0)
+td0
+td1=table(tttrain1[,3])
+td1=td1/sum(td1)
+td1
+
+## scheduled origin
+to0=table(tttrain0[,4])
+to0=to0/sum(to0)
+to0
+to1=table(tttrain1[,4])
+to1=to1/sum(to1)
+to1
+
+
+## scheduled day of week
+tdw0=table(tttrain0[,5])
+tdw0=tdw0/sum(tdw0)
+tdw0
+tdw1=table(tttrain1[,5])
+tdw1=tdw1/sum(tdw1)
+tdw1
+
+
+## creating test data set
+tt=cbind(nbdel$schedf[-nbtrain],
+         nbdel$UNIQUE_CARRIER[-nbtrain],
+         nbdel$DEST[-nbtrain],nbdel$ORIGIN[-nbtrain],
+         nbdel$DAY_OF_WEEK[-nbtrain],
+         response[-nbtrain])
+
+## creating predictions, stored in gg
+p0=ts0[tt[,1]]*tc0[tt[,2]]*td0[tt[,3]]*to0[tt[,4]]*tdw0[tt[,5]]
+p1=ts1[tt[,1]]*tc1[tt[,2]]*td1[tt[,3]]*to1[tt[,4]]*tdw1[tt[,5]]
+gg=(p1*tdel[2])/(p1*tdel[2]+p0*tdel[1])
+
+
+##Coding as 1 if probability 0.5 or larger
+nbgg1=floor(gg+0.5)
+nbttt=table(response[-nbtrain],nbgg1)
+nbttt
+nberror=(nbttt[1,2]+nbttt[2,1])/n2
+nberror
+
+nbbb=cbind(gg,response[-nbtrain])
+nbbb1=nbbb[order(gg,decreasing=TRUE),]
+
+
+## order cases in test set naccording to their success prob
+## actual outcome shown next to it
+## overall success (delay) prob in evaluation set
+nbxbar=mean(response[-nbtrain])
+nbxbar
+
+#RANDOM FOREST#
+
+rm(list = ls())
+
+library(car) ## needed to recode variables
+library(randomForest)
+
+FlightDelays3 <- read.csv("Finald.csv")
+
+#RANDOM FOREST
+#Data preprocessing
+
+## define hours of departure
+RFdel <- data.frame(FlightDelays3)
+RFdel$sched <- factor(floor(RFdel$ARR_TIME/100))
+RFdel$Carrier_Delay_Status <- recode(RFdel$Carrier_Delay_Status, "'delayed'=1;else=0")
+
+#Omit the unused variables
+RFdel <- RFdel[, c(-1,-2,-3,-8,-9,-10,-11,-12)]
+
+## estimation of the logistic regression model
+## explanatory variables: carrier, destination, origin, weather, day of week
+## (weekday/weekend), scheduled hour of departure
+## create design matrix; indicators for categorical variables (factors)
+RFXdel <- model.matrix(Carrier_Delay_Status~.,data=RFdel)[,-1]
+RFXdel[1:4,]
+
+
+#Training and testing sets
+
+n <- length(RFdel$Carrier_Delay_Status)  #Number of observation in the source data
+n1 <- floor(n*0.8)     #60% percent of the total number of observations
+n1
+n2 <- (n - n1)          #40% percent of the total number of observations
+
+#Create training and test data sets
+set.seed(1)
+RFtrain <- sample(1:n, n1)
+RFxtrain <- RFXdel[RFtrain,]
+RFxtest <- RFXdel[-RFtrain,]
+RFytrain <- RFdel$Carrier_Delay_Status[RFtrain]
+RFytest <- RFdel$Carrier_Delay_Status[-RFtrain]
+
+RFtrainingds <- data.frame(Carrier_Delay_Status=RFytrain, RFxtrain)
+RFtestds <- data.frame(Carrier_Delay_Status=RFytest,RFxtest)
+
+
+#Random Forest Classification
+
+RF  <-randomForest(Carrier_Delay_Status~., data=RFtrainingds, ntree=200)
+
+## prediction: Predicted response adn probability for cases in test set
+RFPredResp <- predict(RF, newdata=RFtestds) #Prediction of response
+RFPredProb <- predict(RF, newdata=RFtestds, type="prob")
+RFyEst <- data.frame(RFytest, ptest=RFPredProb[,2])
+RFyEst[1:10,]
+
+#Confusion matrix 
+RFt = table(observed=RFtestds[,'Carrier_Delay_Status'], predict=RFPredResp)
+RFt
+
+#Misclassification rate
+RFmiscRate <- (RFt[1,2]+RFt[2,1])/n2
+RFmiscRate
+
+
+
+
+```
+
